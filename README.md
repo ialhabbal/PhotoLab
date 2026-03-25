@@ -1,6 +1,6 @@
-#PhotoLab
+##PhotoLab
 
-## ComfyUI node that applies effects to generated images like JPG compression, color grading, film grain, vignette, blur, and optional lighting matching with a reference image.
+### ComfyUI node that applies effects to generated images like JPG compression, color grading, film grain, vignette, blur, and optional lighting matching with a reference image.
 
 ![PhotoLab Preview](media/PhotoLab_.png)
 
