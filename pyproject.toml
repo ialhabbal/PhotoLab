@@ -1,0 +1,19 @@
+[project]
+name = "PhotoLab"
+description = "ComfyUI node that applies effects to generated images like JPG compression, color grading, film grain, vignette, blur, and optional lighting matching with a reference image"
+version = "0.0.1"
+license = { file = "LICENSE" }
+dependencies = [
+    "numpy",
+    "Pillow",
+    "opencv-python"
+]
+
+[project.urls]
+Repository = "https://github.com/ialhabbal/PhotoLab"
+
+[tool.comfy]
+PublisherId = "ialhabbal"
+DisplayName = "PhotoLab"
+Icon = "https://raw.githubusercontent.com/ialhabbal/PhotoLab/main/media/PhotoLab.png"
+includes = []
