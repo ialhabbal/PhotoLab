@@ -28,3 +28,5 @@
 ### Optional Parameters:
 - **reference_image**: Reference image tensor [B, H, W, C] for lighting matching (only used when lighting_match_mode is not "Disabled")
 - **Reset to Defaults** Resets all parameters to their defults
+
+Credit to: https://github.com/brucew4yn3rp/ComfyUI_VintageEffect.git
