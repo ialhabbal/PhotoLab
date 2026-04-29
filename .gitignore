@@ -1,4 +1,4 @@
-desktop.ini
-Desktop.ini
-Thumbs.db
-.DS_Store
+__pycache__/
+Archive/
+node.zip
+.ruff_cache/

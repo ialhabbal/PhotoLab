@@ -30,6 +30,13 @@ class PhotoLab:
                     "step": 1,
                     "tooltip": "Number of compression passes. More passes = more degradation"
                 }),
+                "pixelate_strength": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 100,
+                    "step": 1,
+                    "tooltip": "Pixelation strength. Reduces image to a lower resolution grid and scales back up. Set to 0 to disable (0-100)"
+                }),
                 "grain_strength": ("INT", {
                     "default": 5,
                     "min": 0,
@@ -108,7 +115,7 @@ class PhotoLab:
         "Optionally matches the lighting and shadows of a reference image before applying effects."
     )
 
-    def process(self, images, quality=70, passes=1, grain_strength=5,
+    def process(self, images, quality=70, passes=1, pixelate_strength=0, grain_strength=5,
                 vignette_strength=0, color_grade="Faded", color_grade_strength=50,
                 saturation=70, blur_type="None", blur_strength=0,
                 lighting_match_mode="Disabled", lighting_match_strength=1.0,
@@ -120,6 +127,7 @@ class PhotoLab:
             images: Tensor of images in ComfyUI format [B, H, W, C]
             quality: JPG compression quality (0-100)
             passes: Number of compression passes
+            pixelate_strength: Strength of pixelation effect (0-100, 0 = disabled)
             grain_strength: Strength of grain effect (0-100, 0 = disabled)
             vignette_strength: Strength of vignette effect (0-100, 0 = disabled)
             color_grade: Color grading preset
@@ -174,6 +182,9 @@ class PhotoLab:
                     enhancer = ImageEnhance.Color(img_pil)
                     img_pil = enhancer.enhance(saturation_actual)
                 img_pil = self._apply_color_effects(img_pil, color_grade, color_grade_actual)
+
+            if pixelate_strength > 0:
+                img_pil = self._apply_pixelation(img_pil, pixelate_strength)
 
             if grain_strength > 0:
                 img_pil = self._add_film_grain(img_pil, grain_actual)
@@ -271,6 +282,25 @@ class PhotoLab:
     # =========================================================================
     # Effects helpers
     # =========================================================================
+
+    def _apply_pixelation(self, img, strength):
+        """
+        Apply real pixelation by downscaling to a reduced resolution grid
+        and scaling back up with nearest-neighbour interpolation, producing
+        hard-edged pixel blocks.
+
+        strength 1  → very subtle (large blocks only at high resolution)
+        strength 100 → extreme pixelation (very coarse grid)
+        """
+        w, h = img.size
+        # Map strength 1-100 to a scale factor range 0.5 → 0.02
+        # (i.e. keep between 50% and 2% of original pixels)
+        scale = max(0.02, 0.5 - (strength - 1) * (0.48 / 99))
+        small_w = max(1, int(round(w * scale)))
+        small_h = max(1, int(round(h * scale)))
+        # Downscale (nearest) then upscale (nearest) to get hard pixel blocks
+        img_small = img.resize((small_w, small_h), Image.NEAREST)
+        return img_small.resize((w, h), Image.NEAREST)
 
     def _apply_blur(self, img, blur_type, strength):
         """Apply various types of blur effects."""

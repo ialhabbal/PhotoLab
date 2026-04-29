@@ -1,7 +1,7 @@
 [project]
 name = "PhotoLab"
-description = "ComfyUI node that applies effects to generated images like JPG compression, color grading, film grain, vignette, blur, and optional lighting matching with a reference image"
-version = "0.0.1"
+description = "ComfyUI node that applies effects to generated images like JPG compression, pixelation, color grading, film grain, vignette, blur, and optional lighting matching with a reference image"
+version = "1.0.0"
 license = { file = "LICENSE" }
 dependencies = [
     "numpy",

@@ -10,6 +10,7 @@ import { app } from "/scripts/app.js";
 const WIDGET_DEFAULTS = {
     quality:                 70,
     passes:                  1,
+    pixelate_strength:       0,
     grain_strength:          5,
     vignette_strength:       0,
     color_grade:             "Faded",

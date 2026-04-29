@@ -1,0 +1,13 @@
+# Core dependencies for VintageEffect ComfyUI node
+
+# Deep learning framework
+torch>=2.0.0
+
+# Image processing
+Pillow>=9.0.0
+
+# Numerical operations
+numpy>=1.24.0
+
+# Scientific computing (for advanced blur effects)
+scipy>=1.10.0
