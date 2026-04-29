@@ -13,10 +13,10 @@ PhotoLab stacks several effects on top of each other in a set order, giving you 
 ---
 
 ## Installation
-
-1. Drop `photo_lab.py` and `photo_lab.js` into your `ComfyUI/custom_nodes/PhotoLab/` folder.
-2. Restart ComfyUI.
-3. Find the node under **image → effects → PhotoLab**.
+1. In ComfyUI Manager, search for PhotoLab. Or, 
+2. Go to your ComfyUI Custom Nodes folder, run a CMD, and git clone the repo: git clone https://github.com/ialhabbal/PhotoLab.git
+3. Restart ComfyUI.
+4. Find the node under **image → effects → PhotoLab**.
 
 > **Optional:** Install `scikit-image` if you want to use the Lighting Match feature:
 > ```
@@ -172,3 +172,8 @@ Here are some starting points to get you going:
 - **Lighting Match at 0.5–0.7 strength** gives you the feel of a reference without making the image look forced.
 - **Pixelation and grain pair well** — the grain breaks up the hard block edges for a more organic retro feel.
 - **Vignette last** (in the pipeline) means it always sits cleanly on top of everything else, which is what you want.
+
+---
+Licene: MIT
+---
+Developed by: ialhabbal
