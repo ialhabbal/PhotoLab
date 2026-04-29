@@ -3,7 +3,7 @@
 PhotoLab is a ComfyUI node that applies classic darkroom and film photography effects to your generated images. Think of it as a one-stop finishing touch: run your image through PhotoLab at the end of your workflow and it'll come out looking like it was shot on film, printed in a darkroom, or processed through a vintage photo lab.
 
 ---
-<img width="1684" height="780" alt="workflow" src="https://github.com/user-attachments/assets/83f5b134-5b3d-48b8-a81a-a964d14e374c" />
+[![PhotoLab Screenshot](https://raw.githubusercontent.com/ialhabbal/PhotoLab/main/media/PhotoLab_.png)](https://github.com/ialhabbal/PhotoLab)
 ---
 
 ## What It Does
