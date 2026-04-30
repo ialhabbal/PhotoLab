@@ -20,6 +20,21 @@ const WIDGET_DEFAULTS = {
     blur_strength:           0,
     lighting_match_mode:     "Disabled",
     lighting_match_strength: 1.0,
+    pores_strength:          0,
+    blemishes_strength:      0,
+    acne_strength:           0,
+    freckles_strength:       0,
+    skin_texture_strength:   0,
+    sss_strength:            0,
+    peach_fuzz_strength:     0,
+    skin_redness_strength:   0,
+    sebum_shine_strength:    0,
+    skin_seed:               0,
+    pores_opacity:           100,
+    blemishes_opacity:       100,
+    acne_opacity:            100,
+    freckles_opacity:        100,
+    skin_texture_opacity:    100,
 };
 
 app.registerExtension({
