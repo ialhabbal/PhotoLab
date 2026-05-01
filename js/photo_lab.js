@@ -2,11 +2,19 @@
  * photo_lab.js
  *
  * ComfyUI frontend extension for the PhotoLab node.
- * Adds a "↺ Reset to Defaults" button widget inside the node.
+ *
+ * Features
+ * --------
+ *  - ↺ Reset to Defaults
+ *  - Built-in Global and Face preset buttons (collapsible sections)
+ *  - User presets saved to localStorage — persist across sessions
+ *    · Each user preset has its own Apply button + a separate ✕ Delete button
+ *    · Active preset is highlighted with a ● marker
  */
 
 import { app } from "/scripts/app.js";
 
+// ─── Default widget values ────────────────────────────────────────────────────
 const WIDGET_DEFAULTS = {
     quality:                 70,
     passes:                  1,
@@ -20,6 +28,7 @@ const WIDGET_DEFAULTS = {
     blur_strength:           0,
     lighting_match_mode:     "Disabled",
     lighting_match_strength: 1.0,
+    mask_mode:               "Face Only",
     pores_strength:          0,
     blemishes_strength:      0,
     acne_strength:           0,
@@ -37,28 +46,324 @@ const WIDGET_DEFAULTS = {
     skin_texture_opacity:    100,
 };
 
+// ─── Built-in presets ─────────────────────────────────────────────────────────
+// Each preset lists only the keys it changes; everything else is left untouched.
+
+const GLOBAL_PRESETS = [
+    {
+        label: "📷 Film Snapshot",
+        desc:  "Faded warm tones, grain, soft vignette — classic point-and-shoot feel.",
+        values: { quality:65, passes:2, grain_strength:18, vignette_strength:22,
+                  color_grade:"Warm", color_grade_strength:55, saturation:80,
+                  blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "🎞 Darkroom B&W",
+        desc:  "Desaturated, high-contrast with heavy grain — analogue darkroom aesthetic.",
+        values: { quality:80, passes:1, grain_strength:30, vignette_strength:35,
+                  color_grade:"Faded", color_grade_strength:70, saturation:0,
+                  blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "❄️ Cool Editorial",
+        desc:  "Crisp cool tones, minimal grain — modern editorial / fashion look.",
+        values: { quality:90, passes:1, grain_strength:6, vignette_strength:10,
+                  color_grade:"Cool", color_grade_strength:45, saturation:88,
+                  blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "🟤 Sepia Vintage",
+        desc:  "Full sepia with soft vignette and light compression artifacts.",
+        values: { quality:65, passes:2, grain_strength:14, vignette_strength:28,
+                  color_grade:"Sepia", color_grade_strength:90, saturation:60,
+                  blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "🌅 Golden Hour",
+        desc:  "Rich warm saturation boost — sunset / golden hour atmosphere.",
+        values: { quality:85, passes:1, grain_strength:8, vignette_strength:18,
+                  color_grade:"Warm", color_grade_strength:75, saturation:120,
+                  blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "📼 Lo-Fi Degraded",
+        desc:  "Aggressive compression + pixelation + grain — VHS / lo-fi look.",
+        values: { quality:30, passes:4, pixelate_strength:12, grain_strength:35,
+                  vignette_strength:40, color_grade:"Faded", color_grade_strength:60,
+                  saturation:65, blur_type:"None", blur_strength:0 },
+    },
+    {
+        label: "🌫 Dreamy Soft Focus",
+        desc:  "Soft-focus blur with faded lift — hazy, ethereal portrait look.",
+        values: { quality:82, passes:1, grain_strength:10, vignette_strength:20,
+                  color_grade:"Faded", color_grade_strength:40, saturation:75,
+                  blur_type:"Soft Focus", blur_strength:28 },
+    },
+];
+
+const FACE_PRESETS = [
+    {
+        label: "✨ Natural Skin",
+        desc:  "Subtle texture and SSS — realistic, non-plastic skin.",
+        values: { mask_mode:"Face Only", skin_texture_strength:25, skin_texture_opacity:85,
+                  pores_strength:20, pores_opacity:70, sss_strength:12,
+                  skin_redness_strength:8, peach_fuzz_strength:10 },
+    },
+    {
+        label: "🔬 High-Detail Skin",
+        desc:  "Macro-level pores, texture, fuzz — great for close-up hero shots.",
+        values: { mask_mode:"Face Only", skin_texture_strength:45, skin_texture_opacity:100,
+                  pores_strength:55, pores_opacity:90, sss_strength:20,
+                  skin_redness_strength:15, peach_fuzz_strength:30, sebum_shine_strength:18 },
+    },
+    {
+        label: "🌸 Freckled & Rosy",
+        desc:  "Light freckles with rosy cheeks — fair to medium skin types.",
+        values: { mask_mode:"Face Only", freckles_strength:35, freckles_opacity:80,
+                  skin_redness_strength:28, sss_strength:14,
+                  skin_texture_strength:18, skin_texture_opacity:75, peach_fuzz_strength:12 },
+    },
+    {
+        label: "🩸 Acne Breakout",
+        desc:  "Moderate acne with blemishes — realistic skin condition portrayal.",
+        values: { mask_mode:"Face Only", acne_strength:40, acne_opacity:90,
+                  blemishes_strength:30, blemishes_opacity:75, skin_redness_strength:35,
+                  pores_strength:30, pores_opacity:80, skin_texture_strength:20 },
+    },
+    {
+        label: "🌟 Oily T-Zone",
+        desc:  "Sebum shine on forehead, nose and chin — natural oily-skin sheen.",
+        values: { mask_mode:"Face Only", sebum_shine_strength:40, skin_redness_strength:12,
+                  sss_strength:18, pores_strength:25, pores_opacity:65, skin_texture_strength:22 },
+    },
+    {
+        label: "👴 Aged Complexion",
+        desc:  "Heavy texture, blemishes and visible pores — mature / aged skin.",
+        values: { mask_mode:"Face Only", skin_texture_strength:60, skin_texture_opacity:100,
+                  pores_strength:65, pores_opacity:100, blemishes_strength:45,
+                  blemishes_opacity:80, skin_redness_strength:30, sss_strength:10, peach_fuzz_strength:8 },
+    },
+];
+
+// ─── localStorage key ─────────────────────────────────────────────────────────
+const LS_KEY = "PhotoLab_userPresets_v1";
+
+function loadUserPresets()  { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } }
+function saveUserPresets(a) { localStorage.setItem(LS_KEY, JSON.stringify(a)); }
+
+// ─── Apply / capture helpers ──────────────────────────────────────────────────
+
+function applyPreset(node, values) {
+    for (const w of node.widgets) {
+        if (Object.prototype.hasOwnProperty.call(values, w.name)) {
+            w.value = values[w.name];
+            w.callback?.(values[w.name], app.canvas, node);
+        }
+    }
+    app.graph.setDirtyCanvas(true, true);
+}
+
+function captureValues(node) {
+    const out = {};
+    for (const w of node.widgets) {
+        if (w.type !== "button") out[w.name] = w.value;
+    }
+    return out;
+}
+
+// ─── Active-preset highlight state ────────────────────────────────────────────
+//
+// We track which button widget is currently "active" so we can prefix its
+// label with ● and clear the previous one when a new preset is selected.
+//
+// Since ComfyUI button widgets render their `name` as the visible label,
+// we store the original name alongside a flag and swap the name on activate /
+// deactivate.
+
+let _activePresetWidget = null;   // the currently highlighted button widget
+let _activePresetLabel  = "";     // its original label (without ●)
+
+function activatePreset(node, btnWidget, originalLabel, values) {
+    // Clear previous highlight
+    if (_activePresetWidget && _activePresetWidget !== btnWidget) {
+        _activePresetWidget.name = _activePresetLabel;
+    }
+    // Set new highlight
+    _activePresetWidget = btnWidget;
+    _activePresetLabel  = originalLabel;
+    btnWidget.name = `● ${originalLabel}`;
+
+    applyPreset(node, values);
+    app.graph.setDirtyCanvas(true, true);
+}
+
+function clearActiveHighlight() {
+    if (_activePresetWidget) {
+        _activePresetWidget.name = _activePresetLabel;
+        _activePresetWidget = null;
+        _activePresetLabel  = "";
+    }
+}
+
+// ─── Section builder ──────────────────────────────────────────────────────────
+//
+// Adds a collapsible section to the node with one button widget per preset.
+// The toggle header button hides/shows the row buttons by setting w.hidden.
+//
+// @param tag       string  — unique identifier used to tag widgets
+// @param title     string  — section header text
+// @param presets   array   — [{label, desc, values}]
+// @param startOpen bool
+//
+// Returns an array of the added button widgets (not the header).
+
+function addSection(node, tag, title, presets, startOpen) {
+    let open = startOpen;
+
+    const header = node.addWidget("button",
+        `${open ? "▼" : "▶"} ${title}`, null,
+        () => {
+            open = !open;
+            header.name = `${open ? "▼" : "▶"} ${title}`;
+            for (const w of node.widgets) {
+                if (w._plTag === tag) w.hidden = !open;
+            }
+            node.setSize(node.computeSize());
+            app.graph.setDirtyCanvas(true, true);
+        },
+        { serialize: false }
+    );
+    header._plHeader = true;
+
+    const btns = [];
+    for (const p of presets) {
+        const btn = node.addWidget("button", p.label, null,
+            () => activatePreset(node, btn, p.label, p.values),
+            { serialize: false, tooltip: p.desc || "" }
+        );
+        btn._plTag = tag;
+        btn.hidden = !open;
+        btns.push(btn);
+    }
+    return btns;
+}
+
+// ─── Extension ────────────────────────────────────────────────────────────────
+
 app.registerExtension({
-    name: "PhotoLab.ResetDefaults",
+    name: "PhotoLab.PresetsV3",
 
     async nodeCreated(node) {
         if (node.comfyClass !== "PhotoLab" && node.type !== "PhotoLab") return;
 
-        node.addWidget(
-            "button",
-            "↺ Reset to Defaults",
-            null,
-            () => {
-                for (const widget of node.widgets) {
-                    const def = WIDGET_DEFAULTS[widget.name];
-                    if (def === undefined) continue;
-                    widget.value = def;
-                    widget.callback?.(def, app.canvas, node);
-                }
-                app.graph.setDirtyCanvas(true, true);
-            },
-            { serialize: false }
-        );
+        // Guard: ComfyUI fires nodeCreated both on first creation and on
+        // workflow load/deserialisation. Without this check every widget is
+        // added twice, producing two full sets of buttons.
+        if (node._plWidgetsAdded) return;
+        node._plWidgetsAdded = true;
 
+        // ── Reset to defaults ──────────────────────────────────────────────
+        node.addWidget("button", "↺ Reset to Defaults", null, () => {
+            clearActiveHighlight();
+            for (const w of node.widgets) {
+                const def = WIDGET_DEFAULTS[w.name];
+                if (def !== undefined) { w.value = def; w.callback?.(def, app.canvas, node); }
+            }
+            app.graph.setDirtyCanvas(true, true);
+        }, { serialize: false });
+
+        // ── Global presets ─────────────────────────────────────────────────
+        addSection(node, "global", "Global Presets", GLOBAL_PRESETS, true);
+
+        // ── Face presets ───────────────────────────────────────────────────
+        addSection(node, "face", "Face Presets", FACE_PRESETS, false);
+
+        // ── User presets ───────────────────────────────────────────────────
+        // Layout per user preset:
+        //   [  Apply — preset label (full width)  ]
+        //   [  ✕ Delete (compact, below apply)    ]
+        //
+        // Keeping apply and delete as completely separate widgets with
+        // unambiguous click targets avoids the unreliable pos hit-test.
+        //
+        // The section is fully rebuilt after every save or delete so indices
+        // stay consistent.
+
+        function rebuildUser() {
+            // Remove all widgets that belong to the user section
+            node.widgets = node.widgets.filter(w => !w._plUser);
+
+            const all = loadUserPresets();
+
+            // ── Section toggle header ──────────────────────────────────────
+            let open = true;
+            const header = node.addWidget("button",
+                `▼ My Presets (${all.length})`, null,
+                () => {
+                    open = !open;
+                    header.name = `${open ? "▼" : "▶"} My Presets (${all.length})`;
+                    for (const w of node.widgets) {
+                        if (w._plUser && !w._plUserHeader) w.hidden = !open;
+                    }
+                    node.setSize(node.computeSize());
+                    app.graph.setDirtyCanvas(true, true);
+                },
+                { serialize: false }
+            );
+            header._plUser       = true;
+            header._plUserHeader = true;
+
+            // ── Save current settings as a new preset ──────────────────────
+            const saveBtn = node.addWidget("button", "＋ Save Current as Preset", null,
+                () => {
+                    const name = prompt(
+                        "Name your preset:",
+                        `My Preset ${loadUserPresets().length + 1}`
+                    );
+                    if (!name) return;
+                    const fresh = loadUserPresets();
+                    fresh.push({ label: `★ ${name}`, desc: "User preset", values: captureValues(node) });
+                    saveUserPresets(fresh);
+                    rebuildUser();
+                },
+                { serialize: false }
+            );
+            saveBtn._plUser = true;
+
+            // ── One Apply + one Delete widget per user preset ──────────────
+            // Apply and Delete are separate sequential widgets.
+            // ComfyUI renders them on separate rows, which gives each a full
+            // unambiguous click target — no pos coordinate math needed.
+            for (let i = 0; i < all.length; i++) {
+                const p = all[i];
+
+                // Apply button — full label, activates highlight
+                const applyBtn = node.addWidget("button", p.label, null,
+                    () => activatePreset(node, applyBtn, p.label, p.values),
+                    { serialize: false, tooltip: "Click to apply this preset" }
+                );
+                applyBtn._plUser = true;
+
+                // Delete button — compact, indented label
+                const delBtn = node.addWidget("button", `  ✕ Delete "${p.label}"`, null,
+                    () => {
+                        // If this preset was active, clear the highlight
+                        if (_activePresetWidget === applyBtn) clearActiveHighlight();
+                        const fresh = loadUserPresets();
+                        fresh.splice(i, 1);
+                        saveUserPresets(fresh);
+                        rebuildUser();
+                    },
+                    { serialize: false, tooltip: "Delete this preset" }
+                );
+                delBtn._plUser = true;
+            }
+
+            node.setSize(node.computeSize());
+            app.graph.setDirtyCanvas(true, true);
+        }
+
+        rebuildUser();
         node.setSize(node.computeSize());
     },
 });

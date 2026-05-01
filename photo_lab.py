@@ -96,6 +96,16 @@ class PhotoLab:
                     "step": 0.05,
                     "tooltip": "Blend between original (0.0) and fully matched lighting (1.0)"
                 }),
+                "mask_mode": (["Face Only", "Inverted", "Disabled"], {
+                    "default": "Face Only",
+                    "tooltip": (
+                        "Controls the face_mask and ALL skin effects below this widget. "
+                        "'Face Only' — skin effects apply only inside the connected mask. "
+                        "'Inverted' — skin effects apply only outside the mask (e.g. body skin). "
+                        "'Disabled' — ALL skin effect widgets below are completely skipped; "
+                        "only global effects above (color grade, blur, grain, vignette, compression) run."
+                    )
+                }),
                 "pores_strength": ("INT", {
                     "default": 0,
                     "min": 0,
@@ -260,11 +270,10 @@ class PhotoLab:
                 }),
                 "face_mask": ("MASK", {
                     "tooltip": (
-                        "Optional grayscale mask (0 = no effect, 1 = full effect) that confines all five "
-                        "face skin effects (pores, blemishes, acne, freckles, skin texture) to the masked "
-                        "region only. Connect any mask node — e.g. a face-detection segmenter or a hand-"
-                        "painted mask — to restrict skin effects to the face and leave the background "
-                        "untouched. When omitted, skin effects apply to the entire image as before."
+                        "Optional grayscale mask (0 = no effect, 1 = full effect) used to spatially "
+                        "restrict skin effects. Behaviour set by mask_mode: 'Face Only' keeps effects "
+                        "inside the mask; 'Inverted' keeps them outside; 'Disabled' skips all skin "
+                        "effects entirely regardless of this input."
                     )
                 }),
             },
@@ -277,8 +286,10 @@ class PhotoLab:
     DESCRIPTION = (
         "Apply photo lab effects including JPG compression artifacts, film grain, vignette, blur, and color grading. "
         "Optionally matches the lighting and shadows of a reference image. "
-        "Skin effects (pores, freckles, blemishes, acne, texture, SSS, peach fuzz, redness, shine) are "
-        "confined to an optional face mask, which is also passed through as a second output. "
+        "Skin effects (pores, freckles, blemishes, acne, texture, SSS, peach fuzz, redness, shine) sit below "
+        "the mask_mode widget and are fully skipped when mask_mode is 'Disabled', spatially confined to a "
+        "connected face mask when 'Face Only', or applied outside the mask when 'Inverted'. "
+        "The mask is also passed through as a second output. "
         "A seed input controls all procedural skin effect patterns for reproducibility."
     )
 
@@ -286,6 +297,7 @@ class PhotoLab:
                 vignette_strength=0, color_grade="Faded", color_grade_strength=50,
                 saturation=70, blur_type="None", blur_strength=0,
                 lighting_match_mode="Disabled", lighting_match_strength=1.0,
+                mask_mode="Face Only",
                 pores_strength=0, blemishes_strength=0, acne_strength=0,
                 freckles_strength=0, skin_texture_strength=0,
                 sss_strength=0, peach_fuzz_strength=0,
@@ -348,8 +360,10 @@ class PhotoLab:
         if lighting_match_mode != "Disabled" and reference_image is not None:
             ref_np = reference_image[0].cpu().numpy().astype(np.float32)
 
-        # Determine whether any skin effect is active (avoids mask work when unused)
-        any_skin_effect = any([
+        # Skin effects are entirely skipped when mask_mode is "Disabled".
+        # This lets the node act as a pure global-effects node without needing
+        # to zero out every individual skin slider.
+        any_skin_effect = mask_mode != "Disabled" and any([
             skin_texture_strength > 0, pores_strength > 0, freckles_strength > 0,
             blemishes_strength > 0, acne_strength > 0, sss_strength > 0,
             peach_fuzz_strength > 0, skin_redness_strength > 0, sebum_shine_strength > 0,
@@ -451,11 +465,13 @@ class PhotoLab:
                         seed=skin_seed + 6
                     )
 
-                # If a face mask was supplied, composite: result = skin*mask + original*(1-mask)
-                # This restricts all skin effects exclusively to the masked region.
+                # Composite skin effects back through the mask.
+                # mask_mode "Disabled" never reaches here (any_skin_effect is False).
+                # "Face Only": apply inside mask.  "Inverted": apply outside mask.
                 if face_mask is not None:
                     img_pil = self._composite_with_mask(
-                        img_before_skin, img_pil, face_mask, i
+                        img_before_skin, img_pil, face_mask, i,
+                        invert=(mask_mode == "Inverted")
                     )
 
             if grain_strength > 0:
@@ -607,10 +623,10 @@ class PhotoLab:
         elif l_mean > 38: return 5
         else:             return 6
 
-    def _composite_with_mask(self, original_pil, processed_pil, face_mask, batch_index):
+    def _composite_with_mask(self, original_pil, processed_pil, face_mask, batch_index, invert=False):
         """
         Alpha-composite the skin-processed image over the original using the
-        face mask, so skin effects only appear inside the masked region.
+        face mask, so skin effects only appear inside (or outside) the masked region.
 
         Args:
             original_pil  : PIL.Image — image before any skin effects
@@ -618,6 +634,8 @@ class PhotoLab:
             face_mask     : torch.Tensor — ComfyUI MASK, shape [B, H, W] or [B, 1, H, W],
                             values in [0, 1] where 1 = fully apply skin effect
             batch_index   : int — which batch element to use from face_mask
+            invert        : bool — flip the mask before compositing so skin effects
+                            apply *outside* the masked region (mask_mode "Inverted")
 
         Returns:
             PIL.Image composited result
@@ -642,6 +660,10 @@ class PhotoLab:
         from scipy.ndimage import gaussian_filter
         mask_np = gaussian_filter(mask_np, sigma=1.5)
         mask_np = np.clip(mask_np, 0.0, 1.0)
+
+        # Flip for "Inverted" mode: apply skin effects outside the masked region
+        if invert:
+            mask_np = 1.0 - mask_np
 
         # --- composite: out = processed * mask + original * (1 - mask) -----
         orig_arr = np.array(original_pil, dtype=np.float32)

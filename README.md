@@ -2,7 +2,7 @@
 
 A ComfyUI node that turns clean AI-generated portraits and photos into images that look like they were shot on real film, edited in a darkroom, or simply lived-in and human. It combines classic photo effects (compression artifacts, grain, vignette, color grading) with a full suite of face skin effects that break the plastic, over-smooth look common in AI art.
 
-![PhotoLab](https://raw.githubusercontent.com/ialhabbal/PhotoLab/main/media/PhotoLab_.png)
+<img width="1684" height="780" alt="workflow" src="https://github.com/user-attachments/assets/83f5b134-5b3d-48b8-a81a-a964d14e374c" />
 
 ---
 
@@ -16,10 +16,13 @@ The node has a lot of inputs, but most of them default to `0` (disabled). A good
 | `grain_strength` | 12 | Light film grain |
 | `color_grade` | Faded | Lifts blacks like old film |
 | `color_grade_strength` | 40 | Keeps it subtle |
+| `mask_mode` | Face Only | Confine skin effects to the face when a mask is connected |
 | `skin_texture_strength` | 35 | Breaks the plastic-skin look |
 | `pores_strength` | 30 | Adds visible pore detail |
 | `sss_strength` | 18 | Warm inner glow under skin |
 | `skin_redness_strength` | 20 | Natural cheek/nose flush |
+
+> **New to the node?** Click one of the built-in **preset buttons** at the bottom of the node to instantly load a starting point, then tweak from there.
 
 ---
 
@@ -77,7 +80,7 @@ How strong the blur is. Has no effect if `blur_type` is None.
 
 ---
 
-### Lighting Match
+### Lighting Match & Mask Mode
 
 These settings let you transfer the lighting mood from one image onto another — useful for making a generated portrait match the lighting of a reference photo.
 
@@ -92,6 +95,19 @@ Blend between the original (0.0) and fully matched (1.0). Use 0.5–0.8 to get t
 
 **`reference_image`** *(optional image input)*
 Connect any image here to use as the lighting reference. Only active when `lighting_match_mode` is not Disabled.
+
+---
+
+**`mask_mode`** *(Face Only / Inverted / Disabled, default Face Only)*
+Controls how the connected `face_mask` is applied, **and acts as a master on/off switch for all skin effects below it**.
+
+| Value | Behaviour |
+|---|---|
+| **Face Only** | All skin effects are confined to the white (masked) region — great for keeping effects on the face only when a mask is connected |
+| **Inverted** | Skin effects are applied *outside* the mask — useful for adding texture to the body or neck while leaving the face untouched |
+| **Disabled** | **All skin effect widgets are completely skipped.** Only the global effects above (colour grade, blur, grain, vignette, compression) run. Use this when you want a pure film/grade look with no skin processing |
+
+> When `mask_mode` is **Disabled**, none of the skin sliders below it have any effect regardless of their values. This is the fastest way to use the node as a global-only effects unit without zeroing every skin slider manually.
 
 ---
 
@@ -194,9 +210,50 @@ Simulates the natural oil/sebum shine of the T-zone (forehead, nose bridge, chin
 Controls the random pattern for all procedural skin effects (pores, freckles, blemishes, acne, peach fuzz, shine). The same seed always produces the same pattern on the same image. Change this number to get a completely different arrangement while keeping all your strength settings. Useful when generating multiple images of the same character.
 
 **`face_mask`** *(optional mask input)*
-Connect a face mask here to restrict all skin effects to the face only, leaving the background, hair, and clothing untouched. Any ComfyUI mask node works — face detection segmenters (like BiSeNet), hand-painted masks, or SAM segments. The mask edges are automatically feathered so the transition is seamless.
+Connect a face mask here to spatially control where skin effects apply. Behaviour depends on `mask_mode`:
+- **Face Only** — effects apply inside the mask (face skin only)
+- **Inverted** — effects apply outside the mask (body / neck skin)
+- **Disabled** — this input is ignored entirely; all skin effects are skipped
+
+Any ComfyUI mask node works — face detection segmenters (like BiSeNet), hand-painted masks, or SAM segments. The mask edges are automatically feathered for a seamless blend.
 
 When a mask is connected, it is also passed through as the second output (`face_mask`) so you can reuse it in other nodes without needing a second mask node.
+
+---
+
+## Presets
+
+The node includes a built-in preset system directly on the node panel, split into two collapsible sections. Click any section header (▼/▶) to expand or collapse it. The active preset is highlighted with a **●** marker so you always know which one is loaded.
+
+### Global Presets
+Affect colour grade, grain, blur, compression, and vignette. Skin effects are intentionally left unchanged so these can be freely combined with any face preset.
+
+| Preset | Description |
+|---|---|
+| 📷 Film Snapshot | Faded warm tones, grain, soft vignette — classic point-and-shoot feel |
+| 🎞 Darkroom B&W | Desaturated, high-contrast with heavy grain — analogue darkroom aesthetic |
+| ❄️ Cool Editorial | Crisp cool tones, minimal grain — modern editorial / fashion look |
+| 🟤 Sepia Vintage | Full sepia with soft vignette and light compression artifacts |
+| 🌅 Golden Hour | Rich warm saturation boost — sunset / golden hour atmosphere |
+| 📼 Lo-Fi Degraded | Aggressive compression + pixelation + grain — VHS / lo-fi look |
+| 🌫 Dreamy Soft Focus | Soft-focus blur with faded lift — hazy, ethereal portrait look |
+
+### Face Presets
+Affect skin effect widgets only. `mask_mode` is set to **Face Only** so effects are automatically confined to the face when a mask is connected.
+
+| Preset | Description |
+|---|---|
+| ✨ Natural Skin | Subtle texture and SSS — realistic, non-plastic skin |
+| 🔬 High-Detail Skin | Macro-level pores, texture, fuzz — great for close-up hero shots |
+| 🌸 Freckled & Rosy | Light freckles with rosy cheeks — fair to medium skin types |
+| 🩸 Acne Breakout | Moderate acne with blemishes — realistic skin condition portrayal |
+| 🌟 Oily T-Zone | Sebum shine on forehead, nose and chin — natural oily-skin sheen |
+| 👴 Aged Complexion | Heavy texture, blemishes and visible pores — mature / aged skin |
+
+### My Presets (User-Saved)
+Click **＋ Save Current as Preset** to snapshot all current widget values under a custom name. Saved presets are stored in your browser's `localStorage` and persist across sessions. To remove a preset click the **✕ Delete** button that appears beneath it.
+
+> Global and Face presets only change their own group of settings — click one from each section to combine them.
 
 ---
 
@@ -258,7 +315,8 @@ pores_strength: 20
 
 ## Notes
 
-- Skin effects apply to the **entire image** by default. Connect a `face_mask` to restrict them to the face.
+- **`mask_mode`** is a master switch for all skin effects. Set it to **Disabled** to skip every skin slider and run the node as a global-only effects unit. Set to **Inverted** to apply skin effects outside the mask instead of inside.
+- Skin effects apply to the **entire image** when no `face_mask` is connected and `mask_mode` is not Disabled. Connect a `face_mask` to restrict them to the face.
 - Effects are applied in a fixed order: lighting match → color grade → pixelate → skin effects → grain → blur → vignette → JPEG compression. The JPEG pass happens last so compression interacts with all effects.
 - The `skin_seed` affects pores, freckles, blemishes, acne, peach fuzz, and sebum shine. It does **not** affect film grain (use a different `grain_strength` value for variation there).
 - Skin tone is automatically detected from the centre of the image and used to tune freckle colour, SSS tint, and peach fuzz colour. No manual skin tone setting is needed.
