@@ -2,7 +2,9 @@
 
 A ComfyUI node that turns clean AI-generated portraits and photos into images that look like they were shot on real film, edited in a darkroom, or simply lived-in and human. It combines classic photo effects (compression artifacts, grain, vignette, color grading) with a full suite of face skin effects that break the plastic, over-smooth look common in AI art.
 
-<img width="1684" height="780" alt="workflow" src="https://github.com/user-attachments/assets/83f5b134-5b3d-48b8-a81a-a964d14e374c" />
+<img src="https://raw.githubusercontent.com/ialhabbal/PhotoLab/main/media/PhotoLab_New.png" width="600">
+<img src="https://raw.githubusercontent.com/ialhabbal/PhotoLab/main/media/PhotoLab_.png" width="600">
+
 
 ---
 
