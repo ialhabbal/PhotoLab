@@ -912,7 +912,8 @@ class PhotoLab:
             pad = int(r * 3) + 2
             y0i, y1i = max(0, int(cy)-pad), min(h, int(cy)+pad+1)
             x0i, x1i = max(0, int(cx)-pad), min(w, int(cx)+pad+1)
-            yy_p = yy[y0i:y1i, x0i:x1i]; xx_p = xx[y0i:y1i, x0i:x1i]
+            yy_p = yy[y0i:y1i, x0i:x1i]
+            xx_p = xx[y0i:y1i, x0i:x1i]
 
             dxr =  cos_a * (xx_p - cx) + sin_a * (yy_p - cy)
             dyr = -sin_a * (xx_p - cx) + cos_a * (yy_p - cy)
@@ -1010,7 +1011,8 @@ class PhotoLab:
                 y0, y1 = max(0, cy - pad), min(h, cy + pad + 1)
                 x0, x1 = max(0, cx - pad), min(w, cx + pad + 1)
                 yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
-                dx = xx - cx; dy = yy - cy
+                dx = xx - cx
+                dy = yy - cy
                 dx_r =  cos_a * dx + sin_a * dy
                 dy_r = -sin_a * dx + cos_a * dy
                 d2 = (dx_r / pr) ** 2 + (dy_r / (pr * aspect)) ** 2
@@ -1102,7 +1104,8 @@ class PhotoLab:
             yy = yy_full[y0:y1, x0:x1]
             xx = xx_full[y0:y1, x0:x1]
 
-            dx = xx - cx; dy = yy - cy
+            dx = xx - cx
+            dy = yy - cy
             dx_r =  cos_a * dx + sin_a * dy
             dy_r = -sin_a * dx + cos_a * dy
             # Add mild radius wobble for organic edge
@@ -1181,7 +1184,8 @@ class PhotoLab:
             yy = yy_full[y0:y1, x0:x1]
             xx = xx_full[y0:y1, x0:x1]
 
-            dx = xx - cx; dy = yy - cy
+            dx = xx - cx
+            dy = yy - cy
             dx_r =  cos_a * dx + sin_a * dy
             dy_r = -sin_a * dx + cos_a * dy
             d2 = (dx_r / r) ** 2 + (dy_r / (r * aspect)) ** 2
@@ -1223,7 +1227,8 @@ class PhotoLab:
                     pad2 = int(sr * 3) + 2
                     sy0, sy1 = max(0, oy-pad2), min(h, oy+pad2+1)
                     sx0, sx1 = max(0, ox-pad2), min(w, ox+pad2+1)
-                    yys = yy_full[sy0:sy1, sx0:sx1]; xxs = xx_full[sy0:sy1, sx0:sx1]
+                    yys = yy_full[sy0:sy1, sx0:sx1]
+                    xxs = xx_full[sy0:sy1, sx0:sx1]
                     sd2 = ((xxs-ox)**2 + (yys-oy)**2) / (sr**2 + 1e-6)
                     smask = np.exp(-1.5 * sd2) * rng.uniform(0.5, 0.9) * spot_opacity
                     for c, bc in enumerate([br, bg, bb]):
